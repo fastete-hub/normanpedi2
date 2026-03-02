@@ -9,6 +9,47 @@ from services.progression_service import ProgressionService
 
 class PDFManager:
     @staticmethod
+    def _logo_path_configurado():
+        """Permite usar un logo local sin versionarlo en el repositorio."""
+        logo_path = (os.getenv("PODOSCOPIO_REPORT_LOGO_PATH") or "").strip()
+        if logo_path and os.path.exists(logo_path):
+            return logo_path
+        return None
+
+    @staticmethod
+    def _direccion_footer_configurada():
+        """Dirección configurable para el pie de página del reporte."""
+        direccion = (os.getenv("PODOSCOPIO_REPORT_ADDRESS") or "").strip()
+        return direccion or None
+
+    @staticmethod
+    def _dibujar_header(c, w, h, titulo):
+        c.setFillColor(HexColor("#0f172a"))
+        c.rect(0, h-80, w, 80, fill=True, stroke=False)
+
+        logo_path = PDFManager._logo_path_configurado()
+        if logo_path:
+            try:
+                c.drawImage(logo_path, 40, h-72, width=60, height=60, preserveAspectRatio=True, mask='auto')
+            except Exception:
+                pass
+
+        c.setFillColor(HexColor("#ffffff"))
+        c.setFont("Helvetica-Bold", 20)
+        c.drawCentredString(w/2, h-45, titulo)
+
+    @staticmethod
+    def _dibujar_footer(c, w, texto_default):
+        direccion = PDFManager._direccion_footer_configurada()
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor("#9ca3af"))
+        c.drawCentredString(w/2, 30, texto_default)
+        if direccion:
+            c.setFont("Helvetica", 9)
+            c.setFillColor(HexColor("#374151"))
+            c.drawCentredString(w/2, 18, f"Dirección: {direccion}")
+
+    @staticmethod
     def _buscar_mapa_calor(imagen_original):
         if not imagen_original:
             return None
@@ -114,11 +155,7 @@ class PDFManager:
         # ===================================
         # HEADER CON ESTILO
         # ===================================
-        c.setFillColor(HexColor("#0f172a"))
-        c.rect(0, h-80, w, 80, fill=True, stroke=False)
-        c.setFillColor(HexColor("#ffffff"))
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(w/2, h-45, "REPORTE DE PRESIONES DE PISADA")
+        PDFManager._dibujar_header(c, w, h, "REPORTE DE PRESIONES DE PISADA")
         
         # ===================================
         # INFORMACIÓN DEL PACIENTE
@@ -396,9 +433,11 @@ class PDFManager:
         # ===================================
         # FOOTER
         # ===================================
-        c.setFont("Helvetica", 8)
-        c.setFillColor(HexColor("#9ca3af"))
-        c.drawCentredString(w/2, 30, f"Podoscopio Pro v3.0 - Reporte generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Podoscopio Pro v3.0 - Reporte generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
         
         c.save()
         return True
@@ -413,11 +452,7 @@ class PDFManager:
         fecha_act = informe_actual[1]
         titulo = f"COMPARATIVO DE ESTUDIOS ({fecha_ant} → {fecha_act})"
 
-        c.setFillColor(HexColor("#0f172a"))
-        c.rect(0, h - 80, w, 80, fill=True, stroke=False)
-        c.setFillColor(HexColor("#ffffff"))
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(w / 2, h - 45, titulo)
+        PDFManager._dibujar_header(c, w, h, titulo)
 
         c.setFillColor(HexColor("#000000"))
         c.setFont("Helvetica-Bold", 11)
@@ -556,8 +591,10 @@ class PDFManager:
         _agregar_pagina_estudio("ESTUDIO ANTERIOR", fecha_ant, ant_original)
         _agregar_pagina_estudio("ESTUDIO ACTUAL", fecha_act, act_original)
 
-        c.setFont("Helvetica", 8)
-        c.setFillColor(HexColor("#9ca3af"))
-        c.drawCentredString(w / 2, 30, f"Podoscopio Pro v3.0 - Comparativo generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Podoscopio Pro v3.0 - Comparativo generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
         c.save()
         return True

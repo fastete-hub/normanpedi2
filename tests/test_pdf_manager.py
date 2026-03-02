@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -9,6 +10,21 @@ from pdf_manager import PDFManager
 
 
 class PDFManagerTests(unittest.TestCase):
+    def test_helpers_configuracion_logo_y_direccion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            logo = os.path.join(tmp, "logo.png")
+            Image.new("RGB", (20, 20), "black").save(logo)
+
+            with patch.dict(os.environ, {
+                "PODOSCOPIO_REPORT_LOGO_PATH": logo,
+                "PODOSCOPIO_REPORT_ADDRESS": "Av. Siempre Viva 742",
+            }, clear=False):
+                self.assertEqual(PDFManager._logo_path_configurado(), logo)
+                self.assertEqual(PDFManager._direccion_footer_configurada(), "Av. Siempre Viva 742")
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": os.path.join(tmp, "faltante.png")}, clear=False):
+                self.assertIsNone(PDFManager._logo_path_configurado())
+
     def test_wrap_text_respeta_saltos_y_retorna_y_menor(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "dummy.pdf")
