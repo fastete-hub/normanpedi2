@@ -1,0 +1,26 @@
+2026-02-23 14:33:05,083 | INFO | podoscopio | Logger inicializado
+2026-02-23 14:33:05,147 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260223_143305.db
+2026-02-23 14:33:41,807 | INFO | podoscopio | Paciente registrado: id=1 nombre=Fede
+2026-02-23 14:34:31,857 | INFO | podoscopio | Escaneo exitoso: pie izq en 1 intento(s), pie der en 1 intento(s)
+2026-02-23 14:35:32,229 | INFO | podoscopio | Limpieza manual de temporales: 2 eliminados
+2026-02-23 14:48:38,422 | INFO | podoscopio | Backup de cierre creado: backups\podoscopio_20260223_144838.db
+2026-02-23 14:49:42,578 | INFO | podoscopio | Logger inicializado
+2026-02-23 14:49:42,618 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260223_144942.db
+2026-02-23 14:49:48,725 | INFO | podoscopio | Limpieza manual de temporales: 0 eliminados
+2026-02-23 14:49:51,323 | INFO | podoscopio | Backup de cierre creado: backups\podoscopio_20260223_144951.db
+2026-02-23 15:12:13,178 | INFO | podoscopio | Logger inicializado
+2026-02-23 15:12:13,205 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260223_151213.db
+2026-02-23 15:13:05,232 | INFO | podoscopio | Escaneo exitoso: pie izq en 1 intento(s), pie der en 1 intento(s)
+2026-02-23 15:15:01,776 | ERROR | podoscopio | Fallo de escaneo: pie izquierdo tras 3 intentos
+2026-02-23 15:16:10,493 | INFO | podoscopio | Backup de cierre creado: backups\podoscopio_20260223_151610.db
+2026-02-23 15:17:14,480 | INFO | podoscopio | Logger inicializado
+2026-02-23 15:17:14,492 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260223_151714.db
+2026-02-23 15:17:56,824 | INFO | podoscopio | Escaneo exitoso: pie izq en 1 intento(s), pie der en 1 intento(s)
+2026-02-23 15:20:21,428 | INFO | podoscopio | Backup de cierre creado: backups\podoscopio_20260223_152021.db
+2026-02-23 15:20:24,965 | INFO | podoscopio | Logger inicializado
+2026-02-23 15:20:24,977 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260223_152024.db
+2026-02-23 15:21:06,733 | INFO | podoscopio | Escaneo exitoso: pie izq en 1 intento(s), pie der en 1 intento(s)
+2026-03-02 16:47:57,816 | INFO | podoscopio | Logger inicializado
+2026-03-02 16:47:57,823 | INFO | podoscopio | Se limpiaron 6 temporales antiguos al iniciar
+2026-03-02 16:47:57,848 | INFO | podoscopio | Backup inicial creado: backups\podoscopio_20260302_164757.db
+2026-03-02 16:48:43,479 | INFO | podoscopio | Backup de cierre creado: backups\podoscopio_20260302_164843.db
