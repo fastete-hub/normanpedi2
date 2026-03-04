@@ -18,12 +18,22 @@ class PDFManagerTests(unittest.TestCase):
             with patch.dict(os.environ, {
                 "PODOSCOPIO_REPORT_LOGO_PATH": logo,
                 "PODOSCOPIO_REPORT_ADDRESS": "Av. Siempre Viva 742",
+                "PODOSCOPIO_REPORT_PHONE": "011 0000-0000",
             }, clear=False):
                 self.assertEqual(PDFManager._logo_path_configurado(), logo)
                 self.assertEqual(PDFManager._direccion_footer_configurada(), "Av. Siempre Viva 742")
+                self.assertEqual(PDFManager._telefono_footer_configurado(), "011 0000-0000")
 
             with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": os.path.join(tmp, "faltante.png")}, clear=False):
                 self.assertIsNone(PDFManager._logo_path_configurado())
+
+    def test_helpers_footer_default_ortopedia(self):
+        with patch.dict(os.environ, {
+            "PODOSCOPIO_REPORT_ADDRESS": "",
+            "PODOSCOPIO_REPORT_PHONE": "",
+        }, clear=False):
+            self.assertIn("Martín de Alzaga", PDFManager._direccion_footer_configurada())
+            self.assertEqual(PDFManager._telefono_footer_configurado(), "011 2089-3090")
 
     def test_logo_fallback_automatico_en_rutas_sugeridas(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -8,6 +8,9 @@ from services.alert_service import AlertService
 from services.progression_service import ProgressionService
 
 class PDFManager:
+    FOOTER_DIRECCION_DEFAULT = "Martín de Alzaga 3083, B1678 Caseros, Provincia de Buenos Aires"
+    FOOTER_TELEFONO_DEFAULT = "011 2089-3090"
+
     @staticmethod
     def _rutas_logo_candidatas():
         """Rutas sugeridas para detectar automáticamente el logo institucional."""
@@ -36,34 +39,61 @@ class PDFManager:
     def _direccion_footer_configurada():
         """Dirección configurable para el pie de página del reporte."""
         direccion = (os.getenv("PODOSCOPIO_REPORT_ADDRESS") or "").strip()
-        return direccion or None
+        return direccion or PDFManager.FOOTER_DIRECCION_DEFAULT
+
+    @staticmethod
+    def _telefono_footer_configurado():
+        """Teléfono configurable para el pie de página del reporte."""
+        telefono = (os.getenv("PODOSCOPIO_REPORT_PHONE") or "").strip()
+        return telefono or PDFManager.FOOTER_TELEFONO_DEFAULT
 
     @staticmethod
     def _dibujar_header(c, w, h, titulo):
-        c.setFillColor(HexColor("#0f172a"))
-        c.rect(0, h-80, w, 80, fill=True, stroke=False)
-
         logo_path = PDFManager._logo_path_configurado()
         if logo_path:
             try:
-                c.drawImage(logo_path, 40, h-72, width=60, height=60, preserveAspectRatio=True, mask='auto')
+                logo_w = 210
+                logo_h = 78
+                c.drawImage(
+                    logo_path,
+                    (w - logo_w) / 2,
+                    h - 88,
+                    width=logo_w,
+                    height=logo_h,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
             except Exception:
                 pass
 
-        c.setFillColor(HexColor("#ffffff"))
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(w/2, h-45, titulo)
+        c.setFillColor(HexColor("#0f172a"))
+        c.setFont("Helvetica-Bold", 16)
+        y_titulo = h - 105
+        c.drawCentredString(w/2, y_titulo, titulo)
+        c.setStrokeColor(HexColor("#0f172a"))
+        c.setLineWidth(1)
+        c.line((w/2)-135, y_titulo-4, (w/2)+135, y_titulo-4)
 
     @staticmethod
     def _dibujar_footer(c, w, texto_default):
         direccion = PDFManager._direccion_footer_configurada()
+        telefono = PDFManager._telefono_footer_configurado()
+
+        c.setStrokeColor(HexColor("#e5e7eb"))
+        c.setLineWidth(1)
+        c.line(45, 48, w-45, 48)
+
+        c.setFont("Helvetica", 9)
+        c.setFillColor(HexColor("#1f2937"))
+        c.drawCentredString(w/2, 35, f"Dirección: {direccion}")
+
+        c.setFont("Helvetica", 9)
+        c.setFillColor(HexColor("#374151"))
+        c.drawCentredString(w/2, 23, f"Teléfono: {telefono}")
+
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor("#9ca3af"))
-        c.drawCentredString(w/2, 30, texto_default)
-        if direccion:
-            c.setFont("Helvetica", 9)
-            c.setFillColor(HexColor("#374151"))
-            c.drawCentredString(w/2, 18, f"Dirección: {direccion}")
+        c.drawCentredString(w/2, 11, texto_default)
 
     @staticmethod
     def _buscar_mapa_calor(imagen_original):
@@ -177,7 +207,7 @@ class PDFManager:
         # INFORMACIÓN DEL PACIENTE
         # ===================================
         c.setFillColor(HexColor("#000000"))
-        y = h - 110
+        y = h - 140
 
         def ensure_space(needed=40):
             nonlocal y
@@ -472,16 +502,16 @@ class PDFManager:
 
         c.setFillColor(HexColor("#000000"))
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(50, h - 110, f"Paciente: {paciente[1]}")
+        c.drawString(50, h - 140, f"Paciente: {paciente[1]}")
         c.setFont("Helvetica", 10)
-        c.drawString(50, h - 130, f"Edad: {paciente[2]} años")
+        c.drawString(50, h - 158, f"Edad: {paciente[2]} años")
 
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(50, h - 165, "Comparación de mediciones (mm):")
+        c.drawString(50, h - 190, "Comparación de mediciones (mm):")
         c.setStrokeColor(HexColor("#0f172a"))
-        c.line(50, h - 170, 550, h - 170)
+        c.line(50, h - 195, 550, h - 195)
 
-        y = h - 195
+        y = h - 220
         c.setFont("Helvetica-Bold", 9)
         c.drawString(55, y, "LADO")
         c.drawString(110, y, "TIPO")
