@@ -25,6 +25,18 @@ class PDFManagerTests(unittest.TestCase):
             with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": os.path.join(tmp, "faltante.png")}, clear=False):
                 self.assertIsNone(PDFManager._logo_path_configurado())
 
+    def test_logo_fallback_automatico_en_rutas_sugeridas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            logo = os.path.join(tmp, "logo_ortopedia.png")
+            Image.new("RGB", (20, 20), "green").save(logo)
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": ""}, clear=False):
+                with patch.object(PDFManager, "_rutas_logo_candidatas", return_value=[
+                    os.path.join(tmp, "no_existe.png"),
+                    logo,
+                ]):
+                    self.assertEqual(PDFManager._logo_path_configurado(), logo)
+
     def test_wrap_text_respeta_saltos_y_retorna_y_menor(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "dummy.pdf")

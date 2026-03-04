@@ -9,11 +9,27 @@ from services.progression_service import ProgressionService
 
 class PDFManager:
     @staticmethod
+    def _rutas_logo_candidatas():
+        """Rutas sugeridas para detectar automáticamente el logo institucional."""
+        base_repo = os.path.dirname(os.path.abspath(__file__))
+        home = os.path.expanduser("~")
+        return [
+            os.path.join(base_repo, "config", "logo_ortopedia.png"),
+            os.path.join(base_repo, "config", "branding", "logo_ortopedia.png"),
+            os.path.join(base_repo, "assets", "logo_ortopedia.png"),
+            os.path.join(home, "Ortopedia", "logo_ortopedia.png"),
+        ]
+
+    @staticmethod
     def _logo_path_configurado():
-        """Permite usar un logo local sin versionarlo en el repositorio."""
+        """Permite usar un logo local por env o por búsqueda automática en rutas sugeridas."""
         logo_path = (os.getenv("PODOSCOPIO_REPORT_LOGO_PATH") or "").strip()
         if logo_path and os.path.exists(logo_path):
             return logo_path
+
+        for candidato in PDFManager._rutas_logo_candidatas():
+            if os.path.exists(candidato):
+                return candidato
         return None
 
     @staticmethod
