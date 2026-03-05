@@ -31,3 +31,15 @@ class ReportService:
         if not ok:
             raise RuntimeError("No se pudo generar el PDF comparativo")
         return ruta_pdf
+
+    @staticmethod
+    def generar_pedido_taller(paciente, informe, ruta_pdf):
+        if not paciente or not informe:
+            raise ValueError("Paciente o informe inválido")
+        if not ruta_pdf:
+            raise ValueError("Ruta de PDF inválida")
+
+        ok = PDFManager.generar_pedido_taller(paciente, informe, ruta_pdf)
+        if not ok:
+            raise RuntimeError("No se pudo generar el pedido a taller")
+        return ruta_pdf

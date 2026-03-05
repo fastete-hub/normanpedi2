@@ -1992,6 +1992,17 @@ class PodoscopioApp(ctk.CTk):
 
         ModernButton(
             btn_frame,
+            text="🛠 Taller",
+            width=90,
+            height=35,
+            corner_radius=Config.CORNER_RADIUS['sm'],
+            fg_color="#0f766e",
+            hover_color="#115e59",
+            command=lambda: self.exportar_pedido_taller(estudio_id)
+        ).pack(side="left", padx=3)
+
+        ModernButton(
+            btn_frame,
             text="🗑️",
             width=45,
             height=35,
@@ -3319,6 +3330,50 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
         except Exception as e:
             self.logger.exception("Error exportando PDF")
             messagebox.showerror("Error", f"Error generando PDF: {e}")
+
+    def exportar_pedido_taller(self, estudio_id):
+        """Genera PDF de pedido a taller con layout de ficha manual."""
+        informe = self.db.obtener_informe(estudio_id)
+        if not informe:
+            messagebox.showerror("Error", "No se pudo cargar el estudio")
+            return
+
+        imagen_path = informe[3]
+        carpeta_estudio = os.path.dirname(imagen_path) if imagen_path else os.getcwd()
+        fecha_estudio = informe[1]
+        nombre_paciente = self.paciente_actual[1].replace(' ', '_')
+        nombre_pdf_sugerido = f"Pedido_Taller_{nombre_paciente}_{fecha_estudio}.pdf"
+
+        ruta_pdf = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf"), ("Todos", "*.*")],
+            initialfile=nombre_pdf_sugerido,
+            initialdir=carpeta_estudio,
+            title="Guardar pedido a taller"
+        )
+        if not ruta_pdf:
+            return
+
+        try:
+            if ReportService.generar_pedido_taller(self.paciente_actual, informe, ruta_pdf):
+                respuesta = messagebox.askyesno(
+                    "Pedido a Taller Generado",
+                    f"✅ Pedido a taller guardado en:\n{ruta_pdf}\n\n¿Desea abrirlo?"
+                )
+                if respuesta:
+                    try:
+                        os.startfile(ruta_pdf)
+                    except Exception:
+                        import subprocess
+                        try:
+                            subprocess.Popen(['xdg-open', ruta_pdf])
+                        except Exception:
+                            messagebox.showinfo("Info", f"PDF guardado en:\n{ruta_pdf}")
+            else:
+                messagebox.showerror("Error", "No se pudo generar el pedido a taller")
+        except Exception as e:
+            self.logger.exception("Error exportando pedido a taller")
+            messagebox.showerror("Error", f"Error generando pedido a taller: {e}")
 
     def borrar_paciente(self, paciente_id):
         """Elimina un paciente y todos sus estudios"""

@@ -96,6 +96,129 @@ class PDFManager:
         c.drawCentredString(w/2, 11, texto_default)
 
     @staticmethod
+    def generar_pedido_taller(paciente, informe, ruta):
+        """Genera el PDF tipo ficha de pedido a taller para completar/imprimir."""
+        c = canvas.Canvas(ruta, pagesize=A4)
+        w, h = A4
+
+        # Header (logo y título similar a layout de referencia)
+        logo_path = PDFManager._logo_path_configurado()
+        if logo_path:
+            try:
+                c.drawImage(logo_path, w - 190, h - 58, width=150, height=36, preserveAspectRatio=True, mask='auto')
+            except Exception:
+                pass
+
+        c.setFillColor(HexColor("#000000"))
+        c.setFont("Helvetica-Bold", 24)
+        c.drawCentredString(w / 2, h - 95, "Medidas Plantillas")
+        c.setLineWidth(1.5)
+        c.line((w / 2) - 95, h - 100, (w / 2) + 95, h - 100)
+
+        # Datos base
+        y = h - 145
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(50, y, "Paciente:")
+        c.line(50, y - 2, 115, y - 2)
+        c.setFont("Helvetica", 13)
+        c.drawString(50, y - 24, f"Edad: {paciente[2] or ''}")
+
+        diagnostico = (informe[4] or "").strip().replace("\n", " ")
+        if len(diagnostico) > 60:
+            diagnostico = diagnostico[:60].rstrip() + "..."
+        c.drawString(50, y - 48, f"Diagnóstico: {diagnostico}")
+
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(270, y, "Cliente:")
+        c.drawString(495, y, "Fecha:")
+        c.setFont("Helvetica", 13)
+        c.drawString(270, y - 24, "Altura:")
+        c.drawString(495, y - 24, "Peso:")
+
+        # Tipo / material
+        y2 = h - 230
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y2, "Tipo de Plantilla:")
+        c.drawString(50, y2 - 22, "Material:")
+
+        c.setFont("Helvetica", 11)
+        c.drawString(155, y2, "Convencional")
+        c.drawString(290, y2, "Valente Valenti")
+        c.drawString(445, y2, "Termoconformada")
+        c.drawString(155, y2 - 22, "Cuero")
+        c.drawString(290, y2 - 22, "Goma")
+        c.drawString(445, y2 - 22, "Microperforado")
+
+        c.drawString(500, y2, "Deportiva")
+        c.drawString(500, y2 - 22, "Plastazote")
+
+        for x in (235, 390, 545):
+            c.rect(x, y2 - 6, 20, 20, stroke=1, fill=0)
+            c.rect(x, y2 - 28, 20, 20, stroke=1, fill=0)
+
+        # Correcciones
+        y3 = h - 300
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3, "Correcciones:")
+        c.line(45, y3 - 2, 160, y3 - 2)
+
+        c.setFont("Helvetica", 12)
+        c.drawString(125, y3 - 58, "Cuña Pie Izquierdo:")
+        c.line(125, y3 - 60, 260, y3 - 60)
+        c.drawString(430, y3 - 58, "Cuña Pie Derecho:")
+        c.line(430, y3 - 60, 560, y3 - 60)
+
+        # Cuñas esquemáticas
+        c.setLineWidth(2)
+        c.line(130, y3 - 100, 260, y3 - 100)
+        c.line(130, y3 - 100, 130, y3 - 85)
+        c.line(130, y3 - 85, 260, y3 - 45)
+        c.line(260, y3 - 45, 260, y3 - 100)
+        c.line(173, y3 - 100, 173, y3 - 77)
+        c.line(216, y3 - 100, 216, y3 - 62)
+
+        c.line(435, y3 - 102, 565, y3 - 102)
+        c.line(435, y3 - 102, 435, y3 - 48)
+        c.line(435, y3 - 48, 565, y3 - 85)
+        c.line(565, y3 - 85, 565, y3 - 102)
+        c.line(478, y3 - 102, 478, y3 - 60)
+        c.line(521, y3 - 102, 521, y3 - 72)
+
+        c.setLineWidth(1)
+        c.setFont("Helvetica", 11)
+        c.drawString(50, y3 - 130, "MM:")
+        c.drawString(340, y3 - 130, "MM:")
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3 - 180, "Realce Pie Izquierdo:")
+        c.line(45, y3 - 182, 190, y3 - 182)
+        c.drawString(355, y3 - 180, "Realce Pie Derecho:")
+        c.line(355, y3 - 182, 500, y3 - 182)
+
+        # Caja de mm y observaciones
+        c.setLineWidth(1)
+        c.rect(45, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45 + (w - 90) / 2, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.setFont("Helvetica", 12)
+        c.drawString(52, y3 - 281, "MM:")
+        c.drawString(52 + (w - 90) / 2, y3 - 281, "MM:")
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3 - 345, "Observaciones:")
+        c.line(45, y3 - 347, 155, y3 - 347)
+        c.setLineWidth(1)
+        c.rect(45, y3 - 525, w - 90, 165, stroke=1, fill=0)
+
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Pedido a Taller generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
+
+        c.save()
+        return True
+
+    @staticmethod
     def _buscar_mapa_calor(imagen_original):
         if not imagen_original:
             return None

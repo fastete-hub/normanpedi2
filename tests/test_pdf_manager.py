@@ -172,5 +172,32 @@ class PDFManagerTests(unittest.TestCase):
             self.assertTrue(os.path.exists(salida))
             self.assertGreater(os.path.getsize(salida), 0)
 
+    def test_generar_pedido_taller_crea_pdf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = os.path.join(tmp, "estudio_original.png")
+            salida = os.path.join(tmp, "pedido_taller.pdf")
+            logo = os.path.join(tmp, "logo_ortopedia.png")
+
+            Image.new("RGB", (50, 50), "white").save(original)
+            Image.new("RGB", (200, 60), "navy").save(logo)
+
+            paciente = (1, "Ana", "30", "OSDE", "mail@x.com", "123", "38")
+            informe = (
+                1,
+                "2026-02-20",
+                1,
+                original,
+                "Diagnóstico de prueba para taller",
+                "Recomendación de prueba",
+                "[]",
+            )
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": logo}, clear=False):
+                ok = PDFManager.generar_pedido_taller(paciente, informe, salida)
+
+            self.assertTrue(ok)
+            self.assertTrue(os.path.exists(salida))
+            self.assertGreater(os.path.getsize(salida), 0)
+
 if __name__ == "__main__":
     unittest.main()
