@@ -8,6 +8,324 @@ from services.alert_service import AlertService
 from services.progression_service import ProgressionService
 
 class PDFManager:
+    FOOTER_DIRECCION_DEFAULT = "Martín de Alzaga 3083, B1678 Caseros, Provincia de Buenos Aires"
+    FOOTER_TELEFONO_DEFAULT = "011 2089-3090"
+
+    @staticmethod
+    def _rutas_logo_candidatas():
+        """Rutas sugeridas para detectar automáticamente el logo institucional."""
+        base_repo = os.path.dirname(os.path.abspath(__file__))
+        home = os.path.expanduser("~")
+        return [
+            os.path.join(base_repo, "config", "logo_ortopedia.png"),
+            os.path.join(base_repo, "config", "branding", "logo_ortopedia.png"),
+            os.path.join(base_repo, "assets", "logo_ortopedia.png"),
+            os.path.join(home, "Ortopedia", "logo_ortopedia.png"),
+        ]
+
+    @staticmethod
+    def _ruta_icono_realce(lado, indice):
+        """Devuelve la ruta del ícono de realce si existe en ubicaciones sugeridas."""
+        base_repo = os.path.dirname(os.path.abspath(__file__))
+        home = os.path.expanduser("~")
+        nombre = f"realce_{lado}_{indice}.png"
+        candidatos = [
+            os.path.join(base_repo, "config", "branding", "realce", nombre),
+            os.path.join(base_repo, "config", "realce", nombre),
+            os.path.join(base_repo, "assets", "realce", nombre),
+            os.path.join(home, "Ortopedia", "realce", nombre),
+        ]
+        for ruta in candidatos:
+            if os.path.exists(ruta):
+                return ruta
+        return None
+
+    @staticmethod
+    def _logo_path_configurado():
+        """Permite usar un logo local por env o por búsqueda automática en rutas sugeridas."""
+        logo_path = (os.getenv("PODOSCOPIO_REPORT_LOGO_PATH") or "").strip()
+        if logo_path and os.path.exists(logo_path):
+            return logo_path
+
+        for candidato in PDFManager._rutas_logo_candidatas():
+            if os.path.exists(candidato):
+                return candidato
+        return None
+
+    @staticmethod
+    def _direccion_footer_configurada():
+        """Dirección configurable para el pie de página del reporte."""
+        direccion = (os.getenv("PODOSCOPIO_REPORT_ADDRESS") or "").strip()
+        return direccion or PDFManager.FOOTER_DIRECCION_DEFAULT
+
+    @staticmethod
+    def _telefono_footer_configurado():
+        """Teléfono configurable para el pie de página del reporte."""
+        telefono = (os.getenv("PODOSCOPIO_REPORT_PHONE") or "").strip()
+        return telefono or PDFManager.FOOTER_TELEFONO_DEFAULT
+
+    @staticmethod
+    def _dibujar_header(c, w, h, titulo):
+        logo_path = PDFManager._logo_path_configurado()
+        if logo_path:
+            try:
+                logo_w = 210
+                logo_h = 78
+                c.drawImage(
+                    logo_path,
+                    (w - logo_w) / 2,
+                    h - 88,
+                    width=logo_w,
+                    height=logo_h,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
+            except Exception:
+                pass
+
+        c.setFillColor(HexColor("#0f172a"))
+        c.setFont("Helvetica-Bold", 16)
+        y_titulo = h - 105
+        c.drawCentredString(w/2, y_titulo, titulo)
+        c.setStrokeColor(HexColor("#0f172a"))
+        c.setLineWidth(1)
+        c.line((w/2)-135, y_titulo-4, (w/2)+135, y_titulo-4)
+
+    @staticmethod
+    def _dibujar_footer(c, w, texto_default):
+        direccion = PDFManager._direccion_footer_configurada()
+        telefono = PDFManager._telefono_footer_configurado()
+
+        c.setStrokeColor(HexColor("#e5e7eb"))
+        c.setLineWidth(1)
+        c.line(45, 48, w-45, 48)
+
+        c.setFont("Helvetica", 9)
+        c.setFillColor(HexColor("#1f2937"))
+        c.drawCentredString(w/2, 35, f"Dirección: {direccion}")
+
+        c.setFont("Helvetica", 9)
+        c.setFillColor(HexColor("#374151"))
+        c.drawCentredString(w/2, 23, f"Teléfono: {telefono}")
+
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor("#9ca3af"))
+        c.drawCentredString(w/2, 11, texto_default)
+
+    @staticmethod
+    def generar_pedido_taller(paciente, informe, ruta, datos=None):
+        """Genera el PDF tipo ficha de pedido a taller (editable desde la app)."""
+        c = canvas.Canvas(ruta, pagesize=A4)
+        w, h = A4
+
+        datos = datos or {}
+        texto = lambda k, default="": str(datos.get(k, default) or "")
+        checks = set(datos.get("checks", []))
+
+        # Header (logo y título similar a layout de referencia)
+        logo_path = PDFManager._logo_path_configurado()
+        if logo_path:
+            try:
+                c.drawImage(logo_path, w - 190, h - 58, width=150, height=36, preserveAspectRatio=True, mask='auto')
+            except Exception:
+                pass
+
+        c.setFillColor(HexColor("#000000"))
+        c.setFont("Helvetica-Bold", 24)
+        c.drawCentredString(w / 2, h - 95, "Medidas Plantillas")
+        c.setLineWidth(1.5)
+        c.line((w / 2) - 95, h - 100, (w / 2) + 95, h - 100)
+
+        # Datos base
+        y = h - 145
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(50, y, f"Paciente: {texto('paciente', paciente[1] or '')}")
+        c.line(50, y - 2, 190, y - 2)
+        c.setFont("Helvetica", 13)
+        c.drawString(50, y - 24, f"Edad: {texto('edad', paciente[2] or '')}")
+
+        diagnostico = texto("diagnostico", (informe[4] or "").strip().replace("\n", " "))
+        if len(diagnostico) > 60:
+            diagnostico = diagnostico[:60].rstrip() + "..."
+        c.drawString(50, y - 48, f"Diagnóstico: {diagnostico}")
+
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(270, y, f"Cliente: {texto('cliente', paciente[1] or '')}")
+        c.drawString(495, y, f"Fecha: {texto('fecha', informe[1] or '')}")
+        c.setFont("Helvetica", 13)
+        c.drawString(270, y - 24, f"Altura: {texto('altura')}")
+        c.drawString(495, y - 24, f"Peso: {texto('peso')}")
+
+        # Tipo / material
+        y2 = h - 230
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y2, "Tipo de Plantilla:")
+        c.drawString(50, y2 - 22, "Material:")
+
+        c.setFont("Helvetica", 10)
+        col_x = [160, 275, 390, 505]
+        checkbox_offset = 92
+
+        c.drawString(col_x[0], y2, "Convencional")
+        c.drawString(col_x[1], y2, "Valente Valenti")
+        c.drawString(col_x[2], y2, "Termoconformada")
+        c.drawString(col_x[3], y2, "Deportiva")
+
+        c.drawString(col_x[0], y2 - 22, "Cuero")
+        c.drawString(col_x[1], y2 - 22, "Goma")
+        c.drawString(col_x[2], y2 - 22, "Microperforado")
+        c.drawString(col_x[3], y2 - 22, "Plastazote")
+
+        checkbox_map = [
+            ("tipo_convencional", col_x[0] + checkbox_offset, y2 - 6),
+            ("tipo_valente", col_x[1] + checkbox_offset, y2 - 6),
+            ("tipo_termoconformada", col_x[2] + checkbox_offset, y2 - 6),
+            ("tipo_deportiva", col_x[3] + checkbox_offset, y2 - 6),
+            ("material_cuero", col_x[0] + checkbox_offset, y2 - 28),
+            ("material_goma", col_x[1] + checkbox_offset, y2 - 28),
+            ("material_microperforado", col_x[2] + checkbox_offset, y2 - 28),
+            ("material_plastazote", col_x[3] + checkbox_offset, y2 - 28),
+        ]
+        for key, x, y_box in checkbox_map:
+            c.rect(x, y_box, 20, 20, stroke=1, fill=0)
+            if key in checks:
+                c.setFont("Helvetica-Bold", 14)
+                c.drawCentredString(x + 10, y_box + 4, "X")
+
+        def draw_foot_icon(x, y, side="left", fill_zone="heel"):
+            """Icono simplificado de pie para guía visual de realces."""
+            c.saveState()
+            c.setLineWidth(0.8)
+            c.setStrokeColor(HexColor("#111827"))
+
+            # Contorno (gota simplificada)
+            c.ellipse(x, y, x + 18, y + 56, stroke=1, fill=0)
+
+            c.setFillColor(HexColor("#000000"))
+            if fill_zone == "lateral":
+                if side == "left":
+                    c.rect(x + 1, y + 5, 7, 46, stroke=0, fill=1)
+                else:
+                    c.rect(x + 10, y + 5, 7, 46, stroke=0, fill=1)
+            elif fill_zone == "medial":
+                if side == "left":
+                    c.rect(x + 10, y + 8, 7, 42, stroke=0, fill=1)
+                else:
+                    c.rect(x + 1, y + 8, 7, 42, stroke=0, fill=1)
+            elif fill_zone == "forefoot":
+                c.ellipse(x + 3, y + 34, x + 15, y + 56, stroke=0, fill=1)
+            elif fill_zone == "midfoot":
+                c.ellipse(x + 4, y + 20, x + 14, y + 40, stroke=0, fill=1)
+            else:  # heel
+                c.ellipse(x + 3, y, x + 15, y + 17, stroke=0, fill=1)
+
+            c.restoreState()
+
+
+        # Correcciones
+        y3 = h - 300
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3, "Correcciones:")
+        c.line(45, y3 - 2, 160, y3 - 2)
+
+        c.setFont("Helvetica", 12)
+        c.drawString(125, y3 - 58, "Cuña Pie Izquierdo:")
+        c.line(125, y3 - 64, 260, y3 - 64)
+        c.drawString(430, y3 - 58, "Cuña Pie Derecho:")
+        c.line(430, y3 - 64, 560, y3 - 64)
+
+        # Cuñas esquemáticas
+        c.setLineWidth(2)
+        c.line(130, y3 - 118, 260, y3 - 118)
+        c.line(130, y3 - 118, 130, y3 - 98)
+        c.line(130, y3 - 98, 260, y3 - 58)
+        c.line(260, y3 - 58, 260, y3 - 118)
+        c.line(173, y3 - 118, 173, y3 - 90)
+        c.line(216, y3 - 118, 216, y3 - 74)
+
+        c.line(435, y3 - 118, 565, y3 - 118)
+        c.line(435, y3 - 118, 435, y3 - 62)
+        c.line(435, y3 - 62, 565, y3 - 100)
+        c.line(565, y3 - 100, 565, y3 - 118)
+        c.line(478, y3 - 118, 478, y3 - 73)
+        c.line(521, y3 - 118, 521, y3 - 86)
+
+        c.setLineWidth(1)
+        c.setFont("Helvetica", 11)
+        c.drawString(50, y3 - 145, f"MM: {texto('cuna_izq_mm')}")
+        c.drawString(340, y3 - 145, f"MM: {texto('cuna_der_mm')}")
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3 - 195, "Realce Pie Izquierdo:")
+        c.line(45, y3 - 197, 190, y3 - 197)
+        c.drawString(355, y3 - 195, "Realce Pie Derecho:")
+        c.line(355, y3 - 197, 500, y3 - 197)
+
+        # Íconos de realce + checkboxes debajo (como layout de referencia)
+        base_y_icons = y3 - 262
+        left_xs = [55, 95, 135, 175, 215, 255]
+        right_xs = [365, 405, 445, 485, 525, 565]
+        left_patterns = ["lateral", "medial", "forefoot", "midfoot", "heel", "heel"]
+        right_patterns = ["heel", "heel", "forefoot", "midfoot", "lateral", "medial"]
+
+        for idx, (x, pat) in enumerate(zip(left_xs, left_patterns), start=1):
+            icono_real = PDFManager._ruta_icono_realce("izq", idx)
+            if icono_real:
+                try:
+                    c.drawImage(icono_real, x, base_y_icons, width=18, height=56, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
+            else:
+                draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
+            y_box = base_y_icons - 26
+            c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
+            if f"realce_izq_{idx}" in checks:
+                c.setFont("Helvetica-Bold", 11)
+                c.drawCentredString(x + 9, y_box + 2, "X")
+
+        for idx, (x, pat) in enumerate(zip(right_xs, right_patterns), start=1):
+            icono_real = PDFManager._ruta_icono_realce("der", idx)
+            if icono_real:
+                try:
+                    c.drawImage(icono_real, x, base_y_icons, width=18, height=56, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
+            else:
+                draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
+            y_box = base_y_icons - 26
+            c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
+            if f"realce_der_{idx}" in checks:
+                c.setFont("Helvetica-Bold", 11)
+                c.drawCentredString(x + 9, y_box + 2, "X")
+
+        # Caja de mm y observaciones
+        c.setLineWidth(1)
+        c.rect(45, y3 - 355, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45 + (w - 90) / 2, y3 - 355, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.setFont("Helvetica", 12)
+        c.drawString(52, y3 - 341, f"MM: {texto('realce_izq_mm')}")
+        c.drawString(52 + (w - 90) / 2, y3 - 341, f"MM: {texto('realce_der_mm')}")
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(45, y3 - 395, "Observaciones:")
+        c.line(45, y3 - 397, 155, y3 - 397)
+        c.setLineWidth(1)
+        c.rect(45, y3 - 470, w - 90, 70, stroke=1, fill=0)
+
+        c.setFont("Helvetica", 10)
+        obs_texto = texto("observaciones", "")
+        if obs_texto:
+            PDFManager._wrap_text(c, obs_texto, 52, y3 - 412, w - 104, min_y=65)
+
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Pedido a Taller generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
+
+        c.save()
+        return True
+
     @staticmethod
     def _buscar_mapa_calor(imagen_original):
         if not imagen_original:
@@ -114,17 +432,13 @@ class PDFManager:
         # ===================================
         # HEADER CON ESTILO
         # ===================================
-        c.setFillColor(HexColor("#0f172a"))
-        c.rect(0, h-80, w, 80, fill=True, stroke=False)
-        c.setFillColor(HexColor("#ffffff"))
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(w/2, h-45, "REPORTE DE PRESIONES DE PISADA")
+        PDFManager._dibujar_header(c, w, h, "REPORTE DE PRESIONES DE PISADA")
         
         # ===================================
         # INFORMACIÓN DEL PACIENTE
         # ===================================
         c.setFillColor(HexColor("#000000"))
-        y = h - 110
+        y = h - 140
 
         def ensure_space(needed=40):
             nonlocal y
@@ -396,9 +710,11 @@ class PDFManager:
         # ===================================
         # FOOTER
         # ===================================
-        c.setFont("Helvetica", 8)
-        c.setFillColor(HexColor("#9ca3af"))
-        c.drawCentredString(w/2, 30, f"Podoscopio Pro v3.0 - Reporte generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Podoscopio Pro v3.0 - Reporte generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
         
         c.save()
         return True
@@ -409,28 +725,25 @@ class PDFManager:
         c = canvas.Canvas(ruta, pagesize=A4)
         w, h = A4
 
+
         fecha_ant = informe_anterior[1]
         fecha_act = informe_actual[1]
         titulo = f"COMPARATIVO DE ESTUDIOS ({fecha_ant} → {fecha_act})"
 
-        c.setFillColor(HexColor("#0f172a"))
-        c.rect(0, h - 80, w, 80, fill=True, stroke=False)
-        c.setFillColor(HexColor("#ffffff"))
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(w / 2, h - 45, titulo)
+        PDFManager._dibujar_header(c, w, h, titulo)
 
         c.setFillColor(HexColor("#000000"))
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(50, h - 110, f"Paciente: {paciente[1]}")
+        c.drawString(50, h - 140, f"Paciente: {paciente[1]}")
         c.setFont("Helvetica", 10)
-        c.drawString(50, h - 130, f"Edad: {paciente[2]} años")
+        c.drawString(50, h - 158, f"Edad: {paciente[2]} años")
 
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(50, h - 165, "Comparación de mediciones (mm):")
+        c.drawString(50, h - 190, "Comparación de mediciones (mm):")
         c.setStrokeColor(HexColor("#0f172a"))
-        c.line(50, h - 170, 550, h - 170)
+        c.line(50, h - 195, 550, h - 195)
 
-        y = h - 195
+        y = h - 220
         c.setFont("Helvetica-Bold", 9)
         c.drawString(55, y, "LADO")
         c.drawString(110, y, "TIPO")
@@ -556,8 +869,10 @@ class PDFManager:
         _agregar_pagina_estudio("ESTUDIO ANTERIOR", fecha_ant, ant_original)
         _agregar_pagina_estudio("ESTUDIO ACTUAL", fecha_act, act_original)
 
-        c.setFont("Helvetica", 8)
-        c.setFillColor(HexColor("#9ca3af"))
-        c.drawCentredString(w / 2, 30, f"Podoscopio Pro v3.0 - Comparativo generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        PDFManager._dibujar_footer(
+            c,
+            w,
+            f"Podoscopio Pro v3.0 - Comparativo generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
         c.save()
         return True

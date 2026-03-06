@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -9,6 +10,43 @@ from pdf_manager import PDFManager
 
 
 class PDFManagerTests(unittest.TestCase):
+    def test_helpers_configuracion_logo_y_direccion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            logo = os.path.join(tmp, "logo.png")
+            Image.new("RGB", (20, 20), "black").save(logo)
+
+            with patch.dict(os.environ, {
+                "PODOSCOPIO_REPORT_LOGO_PATH": logo,
+                "PODOSCOPIO_REPORT_ADDRESS": "Av. Siempre Viva 742",
+                "PODOSCOPIO_REPORT_PHONE": "011 0000-0000",
+            }, clear=False):
+                self.assertEqual(PDFManager._logo_path_configurado(), logo)
+                self.assertEqual(PDFManager._direccion_footer_configurada(), "Av. Siempre Viva 742")
+                self.assertEqual(PDFManager._telefono_footer_configurado(), "011 0000-0000")
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": os.path.join(tmp, "faltante.png")}, clear=False):
+                self.assertIsNone(PDFManager._logo_path_configurado())
+
+    def test_helpers_footer_default_ortopedia(self):
+        with patch.dict(os.environ, {
+            "PODOSCOPIO_REPORT_ADDRESS": "",
+            "PODOSCOPIO_REPORT_PHONE": "",
+        }, clear=False):
+            self.assertIn("Martín de Alzaga", PDFManager._direccion_footer_configurada())
+            self.assertEqual(PDFManager._telefono_footer_configurado(), "011 2089-3090")
+
+    def test_logo_fallback_automatico_en_rutas_sugeridas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            logo = os.path.join(tmp, "logo_ortopedia.png")
+            Image.new("RGB", (20, 20), "green").save(logo)
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": ""}, clear=False):
+                with patch.object(PDFManager, "_rutas_logo_candidatas", return_value=[
+                    os.path.join(tmp, "no_existe.png"),
+                    logo,
+                ]):
+                    self.assertEqual(PDFManager._logo_path_configurado(), logo)
+
     def test_wrap_text_respeta_saltos_y_retorna_y_menor(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "dummy.pdf")
@@ -129,6 +167,45 @@ class PDFManagerTests(unittest.TestCase):
                 salida,
                 historial_informes=historial,
             )
+
+            self.assertTrue(ok)
+            self.assertTrue(os.path.exists(salida))
+            self.assertGreater(os.path.getsize(salida), 0)
+
+    def test_generar_pedido_taller_crea_pdf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = os.path.join(tmp, "estudio_original.png")
+            salida = os.path.join(tmp, "pedido_taller.pdf")
+            logo = os.path.join(tmp, "logo_ortopedia.png")
+
+            Image.new("RGB", (50, 50), "white").save(original)
+            Image.new("RGB", (200, 60), "navy").save(logo)
+
+            paciente = (1, "Ana", "30", "OSDE", "mail@x.com", "123", "38")
+            informe = (
+                1,
+                "2026-02-20",
+                1,
+                original,
+                "Diagnóstico de prueba para taller",
+                "Recomendación de prueba",
+                "[]",
+            )
+
+            datos = {
+                "cliente": "Ana Cliente",
+                "altura": "1.68",
+                "peso": "65",
+                "checks": ["tipo_deportiva", "material_plastazote", "realce_izq_2", "realce_der_5"],
+                "cuna_izq_mm": "3",
+                "cuna_der_mm": "2",
+                "realce_izq_mm": "4",
+                "realce_der_mm": "4",
+                "observaciones": "Control en 30 días",
+            }
+
+            with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": logo}, clear=False):
+                ok = PDFManager.generar_pedido_taller(paciente, informe, salida, datos=datos)
 
             self.assertTrue(ok)
             self.assertTrue(os.path.exists(salida))
