@@ -3331,6 +3331,106 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
             self.logger.exception("Error exportando PDF")
             messagebox.showerror("Error", f"Error generando PDF: {e}")
 
+    def _abrir_form_pedido_taller(self, informe):
+        """Formulario editable para completar datos del pedido a taller."""
+        datos_out = {}
+        win = ctk.CTkToplevel(self)
+        win.title("Pedido a Taller")
+        win.geometry("780x680")
+        win.transient(self)
+        win.grab_set()
+
+        body = ctk.CTkScrollableFrame(win)
+        body.pack(fill="both", expand=True, padx=12, pady=12)
+
+        def labeled_entry(master, label, default=""):
+            row = ctk.CTkFrame(master, fg_color="transparent")
+            row.pack(fill="x", pady=4)
+            ctk.CTkLabel(row, text=label, width=120, anchor="w").pack(side="left")
+            ent = ctk.CTkEntry(row)
+            ent.pack(side="left", fill="x", expand=True)
+            if default:
+                ent.insert(0, str(default))
+            return ent
+
+        ctk.CTkLabel(body, text="Datos generales", font=(Config.FONT_FAMILY, 16, "bold")).pack(anchor="w", pady=(0, 4))
+        e_paciente = labeled_entry(body, "Paciente", self.paciente_actual[1] if self.paciente_actual else "")
+        e_cliente = labeled_entry(body, "Cliente", self.paciente_actual[1] if self.paciente_actual else "")
+        e_fecha = labeled_entry(body, "Fecha", informe[1] if informe else "")
+        e_edad = labeled_entry(body, "Edad", self.paciente_actual[2] if self.paciente_actual else "")
+        e_altura = labeled_entry(body, "Altura")
+        e_peso = labeled_entry(body, "Peso")
+
+        ctk.CTkLabel(body, text="Diagnóstico", anchor="w").pack(fill="x", pady=(8, 2))
+        t_diag = ctk.CTkTextbox(body, height=70)
+        t_diag.pack(fill="x")
+        if informe and informe[4]:
+            t_diag.insert("0.0", str(informe[4]))
+
+        ctk.CTkLabel(body, text="Tipo de plantilla", font=(Config.FONT_FAMILY, 15, "bold")).pack(anchor="w", pady=(12, 4))
+        tipo_keys = [
+            ("tipo_convencional", "Convencional"),
+            ("tipo_valente", "Valente Valenti"),
+            ("tipo_termoconformada", "Termoconformada"),
+        ]
+        material_keys = [
+            ("material_cuero", "Cuero"),
+            ("material_goma", "Goma"),
+            ("material_microperforado", "Microperforado"),
+        ]
+        check_vars = {}
+        tipo_frame = ctk.CTkFrame(body, fg_color="transparent")
+        tipo_frame.pack(fill="x")
+        for k, txt in tipo_keys:
+            v = ctk.BooleanVar(value=False)
+            check_vars[k] = v
+            ctk.CTkCheckBox(tipo_frame, text=txt, variable=v).pack(side="left", padx=(0, 10))
+
+        ctk.CTkLabel(body, text="Material", font=(Config.FONT_FAMILY, 15, "bold")).pack(anchor="w", pady=(8, 4))
+        mat_frame = ctk.CTkFrame(body, fg_color="transparent")
+        mat_frame.pack(fill="x")
+        for k, txt in material_keys:
+            v = ctk.BooleanVar(value=False)
+            check_vars[k] = v
+            ctk.CTkCheckBox(mat_frame, text=txt, variable=v).pack(side="left", padx=(0, 10))
+
+        ctk.CTkLabel(body, text="Medidas (mm)", font=(Config.FONT_FAMILY, 15, "bold")).pack(anchor="w", pady=(12, 4))
+        e_cuna_izq = labeled_entry(body, "Cuña IZQ")
+        e_cuna_der = labeled_entry(body, "Cuña DER")
+        e_realce_izq = labeled_entry(body, "Realce IZQ")
+        e_realce_der = labeled_entry(body, "Realce DER")
+
+        ctk.CTkLabel(body, text="Observaciones de taller", anchor="w").pack(fill="x", pady=(8, 2))
+        t_obs = ctk.CTkTextbox(body, height=120)
+        t_obs.pack(fill="x")
+
+        btns = ctk.CTkFrame(win, fg_color="transparent")
+        btns.pack(fill="x", padx=12, pady=(0, 12))
+
+        def confirmar():
+            datos_out.update({
+                "paciente": e_paciente.get().strip(),
+                "cliente": e_cliente.get().strip(),
+                "fecha": e_fecha.get().strip(),
+                "edad": e_edad.get().strip(),
+                "altura": e_altura.get().strip(),
+                "peso": e_peso.get().strip(),
+                "diagnostico": t_diag.get("0.0", "end").strip(),
+                "cuna_izq_mm": e_cuna_izq.get().strip(),
+                "cuna_der_mm": e_cuna_der.get().strip(),
+                "realce_izq_mm": e_realce_izq.get().strip(),
+                "realce_der_mm": e_realce_der.get().strip(),
+                "observaciones": t_obs.get("0.0", "end").strip(),
+                "checks": [k for k, v in check_vars.items() if v.get()],
+            })
+            win.destroy()
+
+        ctk.CTkButton(btns, text="Cancelar", fg_color="transparent", border_width=1, command=win.destroy).pack(side="right", padx=6)
+        ctk.CTkButton(btns, text="Generar PDF", command=confirmar).pack(side="right")
+
+        self.wait_window(win)
+        return datos_out if datos_out else None
+
     def exportar_pedido_taller(self, estudio_id):
         """Genera PDF de pedido a taller con layout de ficha manual."""
         informe = self.db.obtener_informe(estudio_id)
@@ -3354,8 +3454,12 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
         if not ruta_pdf:
             return
 
+        datos_taller = self._abrir_form_pedido_taller(informe)
+        if not datos_taller:
+            return
+
         try:
-            if ReportService.generar_pedido_taller(self.paciente_actual, informe, ruta_pdf):
+            if ReportService.generar_pedido_taller(self.paciente_actual, informe, ruta_pdf, datos_taller):
                 respuesta = messagebox.askyesno(
                     "Pedido a Taller Generado",
                     f"✅ Pedido a taller guardado en:\n{ruta_pdf}\n\n¿Desea abrirlo?"

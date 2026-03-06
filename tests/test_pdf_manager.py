@@ -192,8 +192,20 @@ class PDFManagerTests(unittest.TestCase):
                 "[]",
             )
 
+            datos = {
+                "cliente": "Ana Cliente",
+                "altura": "1.68",
+                "peso": "65",
+                "checks": ["tipo_convencional", "material_cuero"],
+                "cuna_izq_mm": "3",
+                "cuna_der_mm": "2",
+                "realce_izq_mm": "4",
+                "realce_der_mm": "4",
+                "observaciones": "Control en 30 días",
+            }
+
             with patch.dict(os.environ, {"PODOSCOPIO_REPORT_LOGO_PATH": logo}, clear=False):
-                ok = PDFManager.generar_pedido_taller(paciente, informe, salida)
+                ok = PDFManager.generar_pedido_taller(paciente, informe, salida, datos=datos)
 
             self.assertTrue(ok)
             self.assertTrue(os.path.exists(salida))

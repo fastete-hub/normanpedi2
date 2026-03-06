@@ -96,10 +96,14 @@ class PDFManager:
         c.drawCentredString(w/2, 11, texto_default)
 
     @staticmethod
-    def generar_pedido_taller(paciente, informe, ruta):
-        """Genera el PDF tipo ficha de pedido a taller para completar/imprimir."""
+    def generar_pedido_taller(paciente, informe, ruta, datos=None):
+        """Genera el PDF tipo ficha de pedido a taller (editable desde la app)."""
         c = canvas.Canvas(ruta, pagesize=A4)
         w, h = A4
+
+        datos = datos or {}
+        texto = lambda k, default="": str(datos.get(k, default) or "")
+        checks = set(datos.get("checks", []))
 
         # Header (logo y título similar a layout de referencia)
         logo_path = PDFManager._logo_path_configurado()
@@ -118,22 +122,22 @@ class PDFManager:
         # Datos base
         y = h - 145
         c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, y, "Paciente:")
-        c.line(50, y - 2, 115, y - 2)
+        c.drawString(50, y, f"Paciente: {texto('paciente', paciente[1] or '')}")
+        c.line(50, y - 2, 190, y - 2)
         c.setFont("Helvetica", 13)
-        c.drawString(50, y - 24, f"Edad: {paciente[2] or ''}")
+        c.drawString(50, y - 24, f"Edad: {texto('edad', paciente[2] or '')}")
 
-        diagnostico = (informe[4] or "").strip().replace("\n", " ")
+        diagnostico = texto("diagnostico", (informe[4] or "").strip().replace("\n", " "))
         if len(diagnostico) > 60:
             diagnostico = diagnostico[:60].rstrip() + "..."
         c.drawString(50, y - 48, f"Diagnóstico: {diagnostico}")
 
         c.setFont("Helvetica-Bold", 14)
-        c.drawString(270, y, "Cliente:")
-        c.drawString(495, y, "Fecha:")
+        c.drawString(270, y, f"Cliente: {texto('cliente', paciente[1] or '')}")
+        c.drawString(495, y, f"Fecha: {texto('fecha', informe[1] or '')}")
         c.setFont("Helvetica", 13)
-        c.drawString(270, y - 24, "Altura:")
-        c.drawString(495, y - 24, "Peso:")
+        c.drawString(270, y - 24, f"Altura: {texto('altura')}")
+        c.drawString(495, y - 24, f"Peso: {texto('peso')}")
 
         # Tipo / material
         y2 = h - 230
@@ -152,9 +156,20 @@ class PDFManager:
         c.drawString(500, y2, "Deportiva")
         c.drawString(500, y2 - 22, "Plastazote")
 
-        for x in (235, 390, 545):
-            c.rect(x, y2 - 6, 20, 20, stroke=1, fill=0)
-            c.rect(x, y2 - 28, 20, 20, stroke=1, fill=0)
+        checkbox_map = [
+            ("tipo_convencional", 235, y2 - 6),
+            ("tipo_valente", 390, y2 - 6),
+            ("tipo_termoconformada", 545, y2 - 6),
+            ("material_cuero", 235, y2 - 28),
+            ("material_goma", 390, y2 - 28),
+            ("material_microperforado", 545, y2 - 28),
+        ]
+        for key, x, y_box in checkbox_map:
+            c.rect(x, y_box, 20, 20, stroke=1, fill=0)
+            if key in checks:
+                c.setFont("Helvetica-Bold", 14)
+                c.drawCentredString(x + 10, y_box + 4, "X")
+
 
         # Correcciones
         y3 = h - 300
@@ -186,8 +201,8 @@ class PDFManager:
 
         c.setLineWidth(1)
         c.setFont("Helvetica", 11)
-        c.drawString(50, y3 - 130, "MM:")
-        c.drawString(340, y3 - 130, "MM:")
+        c.drawString(50, y3 - 130, f"MM: {texto('cuna_izq_mm')}")
+        c.drawString(340, y3 - 130, f"MM: {texto('cuna_der_mm')}")
 
         c.setFont("Helvetica-Bold", 16)
         c.drawString(45, y3 - 180, "Realce Pie Izquierdo:")
@@ -200,14 +215,19 @@ class PDFManager:
         c.rect(45, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
         c.rect(45 + (w - 90) / 2, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
         c.setFont("Helvetica", 12)
-        c.drawString(52, y3 - 281, "MM:")
-        c.drawString(52 + (w - 90) / 2, y3 - 281, "MM:")
+        c.drawString(52, y3 - 281, f"MM: {texto('realce_izq_mm')}")
+        c.drawString(52 + (w - 90) / 2, y3 - 281, f"MM: {texto('realce_der_mm')}")
 
         c.setFont("Helvetica-Bold", 16)
         c.drawString(45, y3 - 345, "Observaciones:")
         c.line(45, y3 - 347, 155, y3 - 347)
         c.setLineWidth(1)
         c.rect(45, y3 - 525, w - 90, 165, stroke=1, fill=0)
+
+        c.setFont("Helvetica", 10)
+        obs_texto = texto("observaciones", "")
+        if obs_texto:
+            PDFManager._wrap_text(c, obs_texto, 52, y3 - 365, w - 104)
 
         PDFManager._dibujar_footer(
             c,
@@ -616,6 +636,7 @@ class PDFManager:
         """Genera un PDF comparativo entre dos estudios del mismo paciente."""
         c = canvas.Canvas(ruta, pagesize=A4)
         w, h = A4
+
 
         fecha_ant = informe_anterior[1]
         fecha_act = informe_actual[1]
