@@ -196,7 +196,7 @@ class PDFManagerTests(unittest.TestCase):
                 "cliente": "Ana Cliente",
                 "altura": "1.68",
                 "peso": "65",
-                "checks": ["tipo_convencional", "material_cuero"],
+                "checks": ["tipo_deportiva", "material_plastazote"],
                 "cuna_izq_mm": "3",
                 "cuna_der_mm": "2",
                 "realce_izq_mm": "4",

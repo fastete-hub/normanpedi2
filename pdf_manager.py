@@ -145,24 +145,29 @@ class PDFManager:
         c.drawString(50, y2, "Tipo de Plantilla:")
         c.drawString(50, y2 - 22, "Material:")
 
-        c.setFont("Helvetica", 11)
-        c.drawString(155, y2, "Convencional")
-        c.drawString(290, y2, "Valente Valenti")
-        c.drawString(445, y2, "Termoconformada")
-        c.drawString(155, y2 - 22, "Cuero")
-        c.drawString(290, y2 - 22, "Goma")
-        c.drawString(445, y2 - 22, "Microperforado")
+        c.setFont("Helvetica", 10)
+        col_x = [160, 275, 390, 505]
+        checkbox_offset = 92
 
-        c.drawString(500, y2, "Deportiva")
-        c.drawString(500, y2 - 22, "Plastazote")
+        c.drawString(col_x[0], y2, "Convencional")
+        c.drawString(col_x[1], y2, "Valente Valenti")
+        c.drawString(col_x[2], y2, "Termoconformada")
+        c.drawString(col_x[3], y2, "Deportiva")
+
+        c.drawString(col_x[0], y2 - 22, "Cuero")
+        c.drawString(col_x[1], y2 - 22, "Goma")
+        c.drawString(col_x[2], y2 - 22, "Microperforado")
+        c.drawString(col_x[3], y2 - 22, "Plastazote")
 
         checkbox_map = [
-            ("tipo_convencional", 235, y2 - 6),
-            ("tipo_valente", 390, y2 - 6),
-            ("tipo_termoconformada", 545, y2 - 6),
-            ("material_cuero", 235, y2 - 28),
-            ("material_goma", 390, y2 - 28),
-            ("material_microperforado", 545, y2 - 28),
+            ("tipo_convencional", col_x[0] + checkbox_offset, y2 - 6),
+            ("tipo_valente", col_x[1] + checkbox_offset, y2 - 6),
+            ("tipo_termoconformada", col_x[2] + checkbox_offset, y2 - 6),
+            ("tipo_deportiva", col_x[3] + checkbox_offset, y2 - 6),
+            ("material_cuero", col_x[0] + checkbox_offset, y2 - 28),
+            ("material_goma", col_x[1] + checkbox_offset, y2 - 28),
+            ("material_microperforado", col_x[2] + checkbox_offset, y2 - 28),
+            ("material_plastazote", col_x[3] + checkbox_offset, y2 - 28),
         ]
         for key, x, y_box in checkbox_map:
             c.rect(x, y_box, 20, 20, stroke=1, fill=0)
@@ -179,55 +184,55 @@ class PDFManager:
 
         c.setFont("Helvetica", 12)
         c.drawString(125, y3 - 58, "Cuña Pie Izquierdo:")
-        c.line(125, y3 - 60, 260, y3 - 60)
+        c.line(125, y3 - 64, 260, y3 - 64)
         c.drawString(430, y3 - 58, "Cuña Pie Derecho:")
-        c.line(430, y3 - 60, 560, y3 - 60)
+        c.line(430, y3 - 64, 560, y3 - 64)
 
         # Cuñas esquemáticas
         c.setLineWidth(2)
-        c.line(130, y3 - 100, 260, y3 - 100)
-        c.line(130, y3 - 100, 130, y3 - 85)
-        c.line(130, y3 - 85, 260, y3 - 45)
-        c.line(260, y3 - 45, 260, y3 - 100)
-        c.line(173, y3 - 100, 173, y3 - 77)
-        c.line(216, y3 - 100, 216, y3 - 62)
+        c.line(130, y3 - 118, 260, y3 - 118)
+        c.line(130, y3 - 118, 130, y3 - 98)
+        c.line(130, y3 - 98, 260, y3 - 58)
+        c.line(260, y3 - 58, 260, y3 - 118)
+        c.line(173, y3 - 118, 173, y3 - 90)
+        c.line(216, y3 - 118, 216, y3 - 74)
 
-        c.line(435, y3 - 102, 565, y3 - 102)
-        c.line(435, y3 - 102, 435, y3 - 48)
-        c.line(435, y3 - 48, 565, y3 - 85)
-        c.line(565, y3 - 85, 565, y3 - 102)
-        c.line(478, y3 - 102, 478, y3 - 60)
-        c.line(521, y3 - 102, 521, y3 - 72)
+        c.line(435, y3 - 118, 565, y3 - 118)
+        c.line(435, y3 - 118, 435, y3 - 62)
+        c.line(435, y3 - 62, 565, y3 - 100)
+        c.line(565, y3 - 100, 565, y3 - 118)
+        c.line(478, y3 - 118, 478, y3 - 73)
+        c.line(521, y3 - 118, 521, y3 - 86)
 
         c.setLineWidth(1)
         c.setFont("Helvetica", 11)
-        c.drawString(50, y3 - 130, f"MM: {texto('cuna_izq_mm')}")
-        c.drawString(340, y3 - 130, f"MM: {texto('cuna_der_mm')}")
+        c.drawString(50, y3 - 145, f"MM: {texto('cuna_izq_mm')}")
+        c.drawString(340, y3 - 145, f"MM: {texto('cuna_der_mm')}")
 
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(45, y3 - 180, "Realce Pie Izquierdo:")
-        c.line(45, y3 - 182, 190, y3 - 182)
-        c.drawString(355, y3 - 180, "Realce Pie Derecho:")
-        c.line(355, y3 - 182, 500, y3 - 182)
+        c.drawString(45, y3 - 195, "Realce Pie Izquierdo:")
+        c.line(45, y3 - 197, 190, y3 - 197)
+        c.drawString(355, y3 - 195, "Realce Pie Derecho:")
+        c.line(355, y3 - 197, 500, y3 - 197)
 
         # Caja de mm y observaciones
         c.setLineWidth(1)
-        c.rect(45, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
-        c.rect(45 + (w - 90) / 2, y3 - 295, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45, y3 - 310, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45 + (w - 90) / 2, y3 - 310, (w - 90) / 2, 20, stroke=1, fill=0)
         c.setFont("Helvetica", 12)
-        c.drawString(52, y3 - 281, f"MM: {texto('realce_izq_mm')}")
-        c.drawString(52 + (w - 90) / 2, y3 - 281, f"MM: {texto('realce_der_mm')}")
+        c.drawString(52, y3 - 296, f"MM: {texto('realce_izq_mm')}")
+        c.drawString(52 + (w - 90) / 2, y3 - 296, f"MM: {texto('realce_der_mm')}")
 
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(45, y3 - 345, "Observaciones:")
-        c.line(45, y3 - 347, 155, y3 - 347)
+        c.drawString(45, y3 - 350, "Observaciones:")
+        c.line(45, y3 - 352, 155, y3 - 352)
         c.setLineWidth(1)
         c.rect(45, y3 - 525, w - 90, 165, stroke=1, fill=0)
 
         c.setFont("Helvetica", 10)
         obs_texto = texto("observaciones", "")
         if obs_texto:
-            PDFManager._wrap_text(c, obs_texto, 52, y3 - 365, w - 104)
+            PDFManager._wrap_text(c, obs_texto, 52, y3 - 368, w - 104)
 
         PDFManager._dibujar_footer(
             c,

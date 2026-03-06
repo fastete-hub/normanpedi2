@@ -3372,11 +3372,13 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
             ("tipo_convencional", "Convencional"),
             ("tipo_valente", "Valente Valenti"),
             ("tipo_termoconformada", "Termoconformada"),
+            ("tipo_deportiva", "Deportiva"),
         ]
         material_keys = [
             ("material_cuero", "Cuero"),
             ("material_goma", "Goma"),
             ("material_microperforado", "Microperforado"),
+            ("material_plastazote", "Plastazote"),
         ]
         check_vars = {}
         tipo_frame = ctk.CTkFrame(body, fg_color="transparent")
