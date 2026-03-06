@@ -3433,32 +3433,34 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
 
     def exportar_pedido_taller(self, estudio_id):
         """Genera PDF de pedido a taller con layout de ficha manual."""
-        informe = self.db.obtener_informe(estudio_id)
-        if not informe:
-            messagebox.showerror("Error", "No se pudo cargar el estudio")
-            return
-
-        imagen_path = informe[3]
-        carpeta_estudio = os.path.dirname(imagen_path) if imagen_path else os.getcwd()
-        fecha_estudio = informe[1]
-        nombre_paciente = self.paciente_actual[1].replace(' ', '_')
-        nombre_pdf_sugerido = f"Pedido_Taller_{nombre_paciente}_{fecha_estudio}.pdf"
-
-        ruta_pdf = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF", "*.pdf"), ("Todos", "*.*")],
-            initialfile=nombre_pdf_sugerido,
-            initialdir=carpeta_estudio,
-            title="Guardar pedido a taller"
-        )
-        if not ruta_pdf:
-            return
-
-        datos_taller = self._abrir_form_pedido_taller(informe)
-        if not datos_taller:
-            return
-
         try:
+            informe = self.db.obtener_informe(estudio_id)
+            if not informe:
+                messagebox.showerror("Error", "No se pudo cargar el estudio")
+                return
+
+            # Primero abrimos el formulario editable para asegurar feedback inmediato al tocar el botón.
+            datos_taller = self._abrir_form_pedido_taller(informe)
+            if not datos_taller:
+                return
+
+            imagen_path = informe[3]
+            carpeta_estudio = os.path.dirname(imagen_path) if imagen_path else os.getcwd()
+            fecha_estudio = informe[1]
+            nombre_paciente = (self.paciente_actual[1] if self.paciente_actual else "Paciente").replace(' ', '_')
+            nombre_pdf_sugerido = f"Pedido_Taller_{nombre_paciente}_{fecha_estudio}.pdf"
+
+            ruta_pdf = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("PDF", "*.pdf"), ("Todos", "*.*")],
+                initialfile=nombre_pdf_sugerido,
+                initialdir=carpeta_estudio,
+                title="Guardar pedido a taller",
+                parent=self,
+            )
+            if not ruta_pdf:
+                return
+
             if ReportService.generar_pedido_taller(self.paciente_actual, informe, ruta_pdf, datos_taller):
                 respuesta = messagebox.askyesno(
                     "Pedido a Taller Generado",
