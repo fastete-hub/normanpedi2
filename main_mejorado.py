@@ -3402,6 +3402,32 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
         e_realce_izq = labeled_entry(body, "Realce IZQ")
         e_realce_der = labeled_entry(body, "Realce DER")
 
+        ctk.CTkLabel(
+            body,
+            text="Realce Pie Izquierdo (marcar patrón)",
+            font=(Config.FONT_FAMILY, 15, "bold"),
+        ).pack(anchor="w", pady=(12, 4))
+        realce_izq_frame = ctk.CTkFrame(body, fg_color="transparent")
+        realce_izq_frame.pack(fill="x")
+        for idx in range(1, 7):
+            key = f"realce_izq_{idx}"
+            v = ctk.BooleanVar(value=False)
+            check_vars[key] = v
+            ctk.CTkCheckBox(realce_izq_frame, text=f"IZQ {idx}", variable=v, width=90).pack(side="left", padx=(0, 6))
+
+        ctk.CTkLabel(
+            body,
+            text="Realce Pie Derecho (marcar patrón)",
+            font=(Config.FONT_FAMILY, 15, "bold"),
+        ).pack(anchor="w", pady=(10, 4))
+        realce_der_frame = ctk.CTkFrame(body, fg_color="transparent")
+        realce_der_frame.pack(fill="x")
+        for idx in range(1, 7):
+            key = f"realce_der_{idx}"
+            v = ctk.BooleanVar(value=False)
+            check_vars[key] = v
+            ctk.CTkCheckBox(realce_der_frame, text=f"DER {idx}", variable=v, width=90).pack(side="left", padx=(0, 6))
+
         ctk.CTkLabel(body, text="Observaciones de taller", anchor="w").pack(fill="x", pady=(8, 2))
         t_obs = ctk.CTkTextbox(body, height=120)
         t_obs.pack(fill="x")

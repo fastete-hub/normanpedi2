@@ -175,6 +175,35 @@ class PDFManager:
                 c.setFont("Helvetica-Bold", 14)
                 c.drawCentredString(x + 10, y_box + 4, "X")
 
+        def draw_foot_icon(x, y, side="left", fill_zone="heel"):
+            """Icono simplificado de pie para guía visual de realces."""
+            c.saveState()
+            c.setLineWidth(0.8)
+            c.setStrokeColor(HexColor("#111827"))
+
+            # Contorno (gota simplificada)
+            c.ellipse(x, y, x + 18, y + 56, stroke=1, fill=0)
+
+            c.setFillColor(HexColor("#000000"))
+            if fill_zone == "lateral":
+                if side == "left":
+                    c.rect(x + 1, y + 5, 7, 46, stroke=0, fill=1)
+                else:
+                    c.rect(x + 10, y + 5, 7, 46, stroke=0, fill=1)
+            elif fill_zone == "medial":
+                if side == "left":
+                    c.rect(x + 10, y + 8, 7, 42, stroke=0, fill=1)
+                else:
+                    c.rect(x + 1, y + 8, 7, 42, stroke=0, fill=1)
+            elif fill_zone == "forefoot":
+                c.ellipse(x + 3, y + 34, x + 15, y + 56, stroke=0, fill=1)
+            elif fill_zone == "midfoot":
+                c.ellipse(x + 4, y + 20, x + 14, y + 40, stroke=0, fill=1)
+            else:  # heel
+                c.ellipse(x + 3, y, x + 15, y + 17, stroke=0, fill=1)
+
+            c.restoreState()
+
 
         # Correcciones
         y3 = h - 300
@@ -215,24 +244,47 @@ class PDFManager:
         c.drawString(355, y3 - 195, "Realce Pie Derecho:")
         c.line(355, y3 - 197, 500, y3 - 197)
 
+        # Íconos de realce + checkboxes debajo (como layout de referencia)
+        base_y_icons = y3 - 262
+        left_xs = [55, 95, 135, 175, 215, 255]
+        right_xs = [365, 405, 445, 485, 525, 565]
+        left_patterns = ["lateral", "medial", "forefoot", "midfoot", "heel", "heel"]
+        right_patterns = ["heel", "heel", "forefoot", "midfoot", "lateral", "medial"]
+
+        for idx, (x, pat) in enumerate(zip(left_xs, left_patterns), start=1):
+            draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
+            y_box = base_y_icons - 26
+            c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
+            if f"realce_izq_{idx}" in checks:
+                c.setFont("Helvetica-Bold", 11)
+                c.drawCentredString(x + 9, y_box + 2, "X")
+
+        for idx, (x, pat) in enumerate(zip(right_xs, right_patterns), start=1):
+            draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
+            y_box = base_y_icons - 26
+            c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
+            if f"realce_der_{idx}" in checks:
+                c.setFont("Helvetica-Bold", 11)
+                c.drawCentredString(x + 9, y_box + 2, "X")
+
         # Caja de mm y observaciones
         c.setLineWidth(1)
-        c.rect(45, y3 - 310, (w - 90) / 2, 20, stroke=1, fill=0)
-        c.rect(45 + (w - 90) / 2, y3 - 310, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45, y3 - 355, (w - 90) / 2, 20, stroke=1, fill=0)
+        c.rect(45 + (w - 90) / 2, y3 - 355, (w - 90) / 2, 20, stroke=1, fill=0)
         c.setFont("Helvetica", 12)
-        c.drawString(52, y3 - 296, f"MM: {texto('realce_izq_mm')}")
-        c.drawString(52 + (w - 90) / 2, y3 - 296, f"MM: {texto('realce_der_mm')}")
+        c.drawString(52, y3 - 341, f"MM: {texto('realce_izq_mm')}")
+        c.drawString(52 + (w - 90) / 2, y3 - 341, f"MM: {texto('realce_der_mm')}")
 
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(45, y3 - 350, "Observaciones:")
-        c.line(45, y3 - 352, 155, y3 - 352)
+        c.drawString(45, y3 - 395, "Observaciones:")
+        c.line(45, y3 - 397, 155, y3 - 397)
         c.setLineWidth(1)
-        c.rect(45, y3 - 525, w - 90, 165, stroke=1, fill=0)
+        c.rect(45, y3 - 470, w - 90, 70, stroke=1, fill=0)
 
         c.setFont("Helvetica", 10)
         obs_texto = texto("observaciones", "")
         if obs_texto:
-            PDFManager._wrap_text(c, obs_texto, 52, y3 - 368, w - 104)
+            PDFManager._wrap_text(c, obs_texto, 52, y3 - 412, w - 104, min_y=65)
 
         PDFManager._dibujar_footer(
             c,
