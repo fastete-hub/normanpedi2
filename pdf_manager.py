@@ -24,6 +24,23 @@ class PDFManager:
         ]
 
     @staticmethod
+    def _ruta_icono_realce(lado, indice):
+        """Devuelve la ruta del ícono de realce si existe en ubicaciones sugeridas."""
+        base_repo = os.path.dirname(os.path.abspath(__file__))
+        home = os.path.expanduser("~")
+        nombre = f"realce_{lado}_{indice}.png"
+        candidatos = [
+            os.path.join(base_repo, "config", "branding", "realce", nombre),
+            os.path.join(base_repo, "config", "realce", nombre),
+            os.path.join(base_repo, "assets", "realce", nombre),
+            os.path.join(home, "Ortopedia", "realce", nombre),
+        ]
+        for ruta in candidatos:
+            if os.path.exists(ruta):
+                return ruta
+        return None
+
+    @staticmethod
     def _logo_path_configurado():
         """Permite usar un logo local por env o por búsqueda automática en rutas sugeridas."""
         logo_path = (os.getenv("PODOSCOPIO_REPORT_LOGO_PATH") or "").strip()
@@ -252,7 +269,14 @@ class PDFManager:
         right_patterns = ["heel", "heel", "forefoot", "midfoot", "lateral", "medial"]
 
         for idx, (x, pat) in enumerate(zip(left_xs, left_patterns), start=1):
-            draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
+            icono_real = PDFManager._ruta_icono_realce("izq", idx)
+            if icono_real:
+                try:
+                    c.drawImage(icono_real, x, base_y_icons, width=18, height=56, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
+            else:
+                draw_foot_icon(x, base_y_icons, side="left", fill_zone=pat)
             y_box = base_y_icons - 26
             c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
             if f"realce_izq_{idx}" in checks:
@@ -260,7 +284,14 @@ class PDFManager:
                 c.drawCentredString(x + 9, y_box + 2, "X")
 
         for idx, (x, pat) in enumerate(zip(right_xs, right_patterns), start=1):
-            draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
+            icono_real = PDFManager._ruta_icono_realce("der", idx)
+            if icono_real:
+                try:
+                    c.drawImage(icono_real, x, base_y_icons, width=18, height=56, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
+            else:
+                draw_foot_icon(x, base_y_icons, side="right", fill_zone=pat)
             y_box = base_y_icons - 26
             c.rect(x + 3, y_box, 12, 12, stroke=1, fill=0)
             if f"realce_der_{idx}" in checks:
