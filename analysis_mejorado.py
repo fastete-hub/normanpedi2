@@ -326,7 +326,14 @@ class ImageAnalyzer:
         return cuantizada
 
     @staticmethod
-    def generar_mapa_calor_3d_desde_heatmap(img_heatmap_pil, elevacion=35, azimut=-125):
+    def generar_mapa_calor_3d_desde_heatmap(
+        img_heatmap_pil,
+        elevacion=35,
+        azimut=-125,
+        base_altura=12.0,
+        escala_pico=55.0,
+        umbral_subida=0.18,
+    ):
         """
         Genera un render 3D separado a partir del mapa de color 2D.
         No afecta la lógica principal del análisis.
@@ -336,8 +343,23 @@ class ImageAnalyzer:
         if not np.any(mask):
             return img_heatmap_pil
 
-        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-        altura = (0.65 * hsv[:, :, 1].astype(np.float32) + 0.35 * hsv[:, :, 2].astype(np.float32))
+        # Modelo "planicie": todo arranca en una base plana y solo suben
+        # las zonas de mayor presión (rojos/amarillos intensos).
+        r = rgb[:, :, 0].astype(np.float32) / 255.0
+        g = rgb[:, :, 1].astype(np.float32) / 255.0
+        b = rgb[:, :, 2].astype(np.float32) / 255.0
+
+        # Índice de "calor alto": rojo dominante por encima de verde/azul.
+        rojo_dominante = np.clip(r - np.maximum(g, b), 0.0, 1.0)
+        brillo = np.max(rgb.astype(np.float32), axis=2) / 255.0
+        indice_calor = rojo_dominante * brillo
+
+        # Solo sube por encima de un umbral: lo demás queda en la base.
+        subida = np.clip((indice_calor - float(umbral_subida)) / max(1e-6, 1.0 - float(umbral_subida)), 0.0, 1.0)
+        subida = cv2.GaussianBlur(subida.astype(np.float32), (0, 0), sigmaX=2.0, sigmaY=2.0)
+
+        altura = np.full((rgb.shape[0], rgb.shape[1]), float(base_altura), dtype=np.float32)
+        altura[mask] = float(base_altura) + (subida[mask] * float(escala_pico))
         altura[~mask] = np.nan
         h, w = altura.shape
         xx, yy = np.meshgrid(np.arange(w), np.arange(h))
