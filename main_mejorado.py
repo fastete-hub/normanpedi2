@@ -98,6 +98,13 @@ class PodoscopioApp(ctk.CTk):
         
         self.mostrar_inicio()
 
+    def _obtener_path_visualizacion(self, modo):
+        if modo == "Original":
+            return self.path_original_temp
+        if modo == "Mapa 3D":
+            return self.path_mapa_3d_temp
+        return self.path_mapa_temp
+
     def _aplicar_calibracion_por_modo(self):
         """Carga factor de calibración específico del modo de captura actual."""
         Config.CALIBRACION_CORRECCION_PXMM = get_calibracion_correccion_por_modo(
@@ -2273,7 +2280,7 @@ class PodoscopioApp(ctk.CTk):
         # Selector de visualización
         self.selector_vista = ctk.CTkSegmentedButton(
             toolbar,
-            values=["Original", "Mapa de Calor"],
+            values=["Original", "Mapa de Calor", "Mapa 3D"],
             command=self.cambiar_visualizacion,
             fg_color=self.colors['bg_secondary'],
             selected_color=self.colors['accent'],
@@ -2623,8 +2630,9 @@ class PodoscopioApp(ctk.CTk):
     def actualizar_canvas_zoom(self):
         """Actualiza el canvas con el nivel de zoom actual"""
         if self.path_original_temp:
-            path = self.path_original_temp if self.modo_visualizacion == "Original" else self.path_mapa_temp
-            self.mostrar_imagen_canvas(path, mantener=True)
+            path = self._obtener_path_visualizacion(self.modo_visualizacion)
+            if path and os.path.exists(path):
+                self.mostrar_imagen_canvas(path, mantener=True)
 
     def _guardar_mapas_temporales(self, mapa_img):
         """Guarda el mapa 2D y genera un mapa 3D separado sin afectar flujo principal."""
@@ -2644,8 +2652,15 @@ class PodoscopioApp(ctk.CTk):
         """Cambia entre vista original y mapa de calor"""
         self.modo_visualizacion = modo
         if self.path_original_temp:
-            path = self.path_original_temp if modo == "Original" else self.path_mapa_temp
-            self.mostrar_imagen_canvas(path, mantener=True)
+            path = self._obtener_path_visualizacion(modo)
+            if path and os.path.exists(path):
+                self.mostrar_imagen_canvas(path, mantener=True)
+            else:
+                messagebox.showinfo("Mapa 3D", "Aún no hay mapa 3D disponible para este estudio.")
+                self.modo_visualizacion = "Mapa de Calor"
+                self.selector_vista.set("Mapa de Calor")
+                if self.path_mapa_temp and os.path.exists(self.path_mapa_temp):
+                    self.mostrar_imagen_canvas(self.path_mapa_temp, mantener=True)
     
     def cambiar_intensidad(self, valor):
         """Cambia la intensidad del mapa de calor"""
@@ -2674,8 +2689,9 @@ class PodoscopioApp(ctk.CTk):
             
             self._guardar_mapas_temporales(mapa_img)
             
-            if self.modo_visualizacion == "Mapa de Calor":
-                self.mostrar_imagen_canvas(self.path_mapa_temp, mantener=True)
+            path = self._obtener_path_visualizacion(self.modo_visualizacion)
+            if path and os.path.exists(path):
+                self.mostrar_imagen_canvas(path, mantener=True)
             
             self.actualizar_estadisticas()
             
@@ -3058,8 +3074,9 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
                 img_original.save(self.path_original_temp)
 
                 # Mostrar imagen según modo de visualización
-                if self.modo_visualizacion == "Original":
-                    self.mostrar_imagen_canvas(self.path_original_temp)
+                path = self._obtener_path_visualizacion(self.modo_visualizacion)
+                if path and os.path.exists(path):
+                    self.mostrar_imagen_canvas(path)
                 else:
                     self.mostrar_imagen_canvas(self.path_mapa_temp)
                 
