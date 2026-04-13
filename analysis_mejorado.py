@@ -1,6 +1,9 @@
 import os
 import cv2
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
 from PIL import Image, ImageFilter, ImageEnhance, ImageTk, ImageDraw
 import tkinter as tk
 from tkinter import colorchooser
@@ -303,6 +306,59 @@ class ImageEditorPopup(tk.Toplevel):
         self.destroy()
 
 class ImageAnalyzer:
+    @staticmethod
+    def _cuantizar_niveles(gray_img, mask, niveles):
+        """Reduce bandas de intensidad para homogeneizar colores del mapa."""
+        if niveles is None or int(niveles) <= 1:
+            return gray_img
+        niveles = int(niveles)
+        cuantizada = gray_img.copy()
+        pix = cuantizada[mask > 0].astype(np.float32)
+        if pix.size == 0:
+            return cuantizada
+        min_v = float(np.min(pix))
+        max_v = float(np.max(pix))
+        if max_v <= min_v:
+            return cuantizada
+        paso = (max_v - min_v) / (niveles - 1)
+        pix_q = np.round((pix - min_v) / paso) * paso + min_v
+        cuantizada[mask > 0] = np.clip(pix_q, 0, 255).astype(np.uint8)
+        return cuantizada
+
+    @staticmethod
+    def generar_mapa_calor_3d_desde_heatmap(img_heatmap_pil, elevacion=35, azimut=-125):
+        """
+        Genera un render 3D separado a partir del mapa de color 2D.
+        No afecta la lógica principal del análisis.
+        """
+        rgb = np.array(img_heatmap_pil.convert("RGB"))
+        mask = np.any(rgb < 245, axis=2)
+        if not np.any(mask):
+            return img_heatmap_pil
+
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+        altura = (0.65 * hsv[:, :, 1].astype(np.float32) + 0.35 * hsv[:, :, 2].astype(np.float32))
+        altura[~mask] = np.nan
+        h, w = altura.shape
+        xx, yy = np.meshgrid(np.arange(w), np.arange(h))
+
+        fig = plt.figure(figsize=(8, 6), dpi=110)
+        ax = fig.add_subplot(111, projection="3d")
+        ax.plot_surface(
+            xx, yy, altura,
+            facecolors=rgb.astype(np.float32) / 255.0,
+            rstride=2, cstride=2,
+            linewidth=0, antialiased=True, shade=False
+        )
+        ax.view_init(elev=elevacion, azim=azimut)
+        ax.set_axis_off()
+        ax.set_title("Mapa de Calor 3D", pad=10, fontsize=12)
+        fig.tight_layout()
+        fig.canvas.draw()
+        width, height = fig.canvas.get_width_height()
+        img_rgba = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape((height, width, 4))
+        plt.close(fig)
+        return Image.fromarray(img_rgba[:, :, :3], mode="RGB")
 
     @staticmethod
     def analizar_presion(image_path, output_path, intensidad=1.5):
@@ -678,6 +734,12 @@ class ImageAnalyzer:
         if k_gauss > 1:
             gray_suave = cv2.GaussianBlur(gray_for_heatmap, (k_gauss, k_gauss), 0)
             gray_for_heatmap[mask_final > 0] = gray_suave[mask_final > 0]
+
+        if modo == "Tinta (Papel)":
+            niveles_color = int(getattr(Config, "HEATMAP_NIVELES_COLOR_TINTA", 8))
+        else:
+            niveles_color = int(getattr(Config, "HEATMAP_NIVELES_COLOR_DIGITAL", 10))
+        gray_for_heatmap = ImageAnalyzer._cuantizar_niveles(gray_for_heatmap, mask_final, niveles_color)
 
         if intensidad != 1.0 and len(pie_pixels) > 0:
             valores = gray_for_heatmap[mask_final > 0].astype(np.float32)

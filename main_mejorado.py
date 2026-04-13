@@ -68,6 +68,7 @@ class PodoscopioApp(ctk.CTk):
         self.estudio_id_edicion = None 
         self.path_original_temp = None
         self.path_mapa_temp = None
+        self.path_mapa_3d_temp = None
         self.modo_visualizacion = "Original"
         self.modo_captura = "Digital"
         self.pixels_por_cm = None
@@ -2049,8 +2050,7 @@ class PodoscopioApp(ctk.CTk):
                     intensidad=self.intensidad_calor,
                     suavizado=self.suavizado_activo
                 )
-                self.path_mapa_temp = str(get_temp_file_path("temp_mapa_view", ".png"))
-                mapa_img.save(self.path_mapa_temp)
+                self._guardar_mapas_temporales(mapa_img)
                 self.mostrar_imagen_canvas(self.path_original_temp)
             except Exception as e:
                 messagebox.showerror("Error", f"Error procesando imagen: {e}")
@@ -2626,6 +2626,18 @@ class PodoscopioApp(ctk.CTk):
             path = self.path_original_temp if self.modo_visualizacion == "Original" else self.path_mapa_temp
             self.mostrar_imagen_canvas(path, mantener=True)
 
+    def _guardar_mapas_temporales(self, mapa_img):
+        """Guarda el mapa 2D y genera un mapa 3D separado sin afectar flujo principal."""
+        self.path_mapa_temp = str(get_temp_file_path("temp_mapa_view", ".png"))
+        mapa_img.save(self.path_mapa_temp)
+        self.path_mapa_3d_temp = None
+        try:
+            mapa_3d = ImageAnalyzer.generar_mapa_calor_3d_desde_heatmap(mapa_img)
+            self.path_mapa_3d_temp = str(get_temp_file_path("temp_mapa_view_3d", ".png"))
+            mapa_3d.save(self.path_mapa_3d_temp)
+        except Exception as e:
+            self.logger.warning("No se pudo generar mapa de calor 3D: %s", e)
+
     # ===== FUNCIONES DE VISUALIZACIÓN =====
     
     def cambiar_visualizacion(self, modo):
@@ -2660,8 +2672,7 @@ class PodoscopioApp(ctk.CTk):
                 suavizado=self.suavizado_activo
             )
             
-            self.path_mapa_temp = str(get_temp_file_path("temp_mapa_view", ".png"))
-            mapa_img.save(self.path_mapa_temp)
+            self._guardar_mapas_temporales(mapa_img)
             
             if self.modo_visualizacion == "Mapa de Calor":
                 self.mostrar_imagen_canvas(self.path_mapa_temp, mantener=True)
@@ -3041,8 +3052,7 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
                 self.path_original_temp = temp_unida  # Esta es la imagen original
                 
                 # Guardar el mapa de calor
-                self.path_mapa_temp = str(get_temp_file_path("temp_mapa_view", ".png"))
-                img_mapa.save(self.path_mapa_temp)
+                self._guardar_mapas_temporales(img_mapa)
                 
                 # Guardar también la imagen original procesada (con fondo blanco)
                 img_original.save(self.path_original_temp)
@@ -3211,13 +3221,16 @@ Posterior (talón): {dist.get('posterior', 0):.1f}%
             nombre_base = f"Estudio_{fecha_hoy}_{timestamp}"
             path_destino_orig = os.path.join(carpeta_estudio, f"{nombre_base}_original.png")
             path_destino_mapa = os.path.join(carpeta_estudio, f"{nombre_base}_mapa_calor.png")
+            path_destino_mapa_3d = os.path.join(carpeta_estudio, f"{nombre_base}_mapa_calor_3d.png")
             
             # Copiar archivos de imágenes
             shutil.copy(self.path_original_temp, path_destino_orig)
             shutil.copy(self.path_mapa_temp, path_destino_mapa)
+            if self.path_mapa_3d_temp and os.path.exists(self.path_mapa_3d_temp):
+                shutil.copy(self.path_mapa_3d_temp, path_destino_mapa_3d)
 
             # Limpiar temporales para evitar acumulación en disco
-            for tmp in (self.path_original_temp, self.path_mapa_temp):
+            for tmp in (self.path_original_temp, self.path_mapa_temp, self.path_mapa_3d_temp):
                 try:
                     if tmp and os.path.exists(tmp) and os.path.abspath(tmp).startswith(os.path.abspath("temp")):
                         os.remove(tmp)
